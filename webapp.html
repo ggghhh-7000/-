@@ -79,20 +79,15 @@
 
     <!-- JavaScript 邏輯 -->
     <script>
-        // 你的 JSONBin 設定
         const BIN_ID = '6aae78bfffd5d160531932c5';
         const API_KEY = '$2a$10$Q3e6T7l53HKgJr3pc5tuW.5dTGTAyi6948TrSpoe7mNIZm6kaRMbm';
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
         let records = [];
 
-        // 設定預設日期為今天
         document.getElementById('record-date').valueAsDate = new Date();
-
-        // 頁面載入時取得資料
         window.addEventListener('DOMContentLoaded', fetchRecords);
 
-        // 表單送出事件
         document.getElementById('bible-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -107,11 +102,9 @@
                 notes: document.getElementById('record-notes').value.trim()
             };
 
-            // 將新記錄加到陣列最前面（馬上顯示）
             records.unshift(newRecord);
             renderRecords();
 
-            // 儲存至 JSONBin
             const success = await saveToJSONBin();
             
             if (success) {
@@ -124,7 +117,6 @@
             submitBtn.innerHTML = `<i class="fa-solid fa-plus"></i> 寫入記錄`;
         });
 
-        // 從 JSONBin 讀取資料
         async function fetchRecords() {
             const statusEl = document.getElementById('sync-status');
             const loadingEl = document.getElementById('loading');
@@ -136,10 +128,16 @@
                     }
                 });
 
-                if (!response.ok) throw new Error('讀取失敗');
+                if (!response.ok) {
+                    // 如果 Bin 是空的或還沒初始化，自動建立空陣列
+                    if (response.status === 404 || response.status === 400) {
+                        await saveToJSONBin();
+                        return;
+                    }
+                    throw new Error('讀取失敗');
+                }
 
                 const data = await response.json();
-                // JSONBin v3 的資料會放在 record 屬性中
                 records = Array.isArray(data.record) ? data.record : [];
                 
                 statusEl.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-300"></i> 已同步`;
@@ -149,7 +147,6 @@
                 statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 雲端連線異常`;
                 statusEl.className = "text-xs bg-rose-900/60 px-3 py-1 rounded-full text-rose-200";
                 
-                // 備份：嘗試從 localStorage 讀取
                 const local = localStorage.getItem('bible_records');
                 if (local) {
                     records = JSON.parse(local);
@@ -160,7 +157,6 @@
             }
         }
 
-        // 儲存資料至 JSONBin
         async function saveToJSONBin() {
             const statusEl = document.getElementById('sync-status');
             try {
@@ -178,7 +174,6 @@
                 statusEl.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-300"></i> 已同步`;
                 statusEl.className = "text-xs bg-emerald-900/60 px-3 py-1 rounded-full text-emerald-200";
                 
-                // 同時備份至 localStorage
                 localStorage.setItem('bible_records', JSON.stringify(records));
                 return true;
             } catch (error) {
@@ -186,14 +181,11 @@
                 statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 雲端同步失敗`;
                 statusEl.className = "text-xs bg-rose-900/60 px-3 py-1 rounded-full text-rose-200";
                 
-                // 失敗時存本機
                 localStorage.setItem('bible_records', JSON.stringify(records));
-                alert('寫入雲端失敗，已暫存於本機瀏覽器。');
                 return false;
             }
         }
 
-        // 渲染記錄列表
         function renderRecords() {
             const listEl = document.getElementById('records-list');
             const countEl = document.getElementById('record-count');
@@ -225,14 +217,13 @@
             `).join('');
         }
 
-        // HTML 跳脫字元防護
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(&apos;&amp;&apos;, &apos;&amp;amp;&apos;)
-                      .replace(&apos;&lt;&apos;, &apos;&amp;lt;&apos;)
-                      .replace(&apos;&gt;&apos;, &apos;&amp;gt;&apos;)
-                      .replace(&apos;"&apos;, &apos;&amp;quot;&apos;)
-                      .replace(&apos;&apos;&apos;, &apos;&amp;#039;&apos;);
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
         }
     </script>
 </body>
