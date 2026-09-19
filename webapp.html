@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>讀經網站 (診斷版)</title>
+    <title>讀經網站</title>
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -13,7 +14,7 @@
     <header class="bg-amber-800 text-white shadow-md">
         <div class="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-2xl font-bold tracking-wide flex items-center gap-2">
-                <i class="fa-solid fa-book-bible"></i> 讀經記錄網站 (診斷版)
+                <i class="fa-solid fa-book-bible"></i> 讀經記錄網站
             </h1>
             <span id="sync-status" class="text-xs bg-amber-900/60 px-3 py-1 rounded-full text-amber-200">
                 <i class="fa-solid fa-cloud"></i> 連線中...
@@ -65,15 +66,18 @@
                 <span id="record-count" class="text-sm text-stone-500">共 0 筆記錄</span>
             </div>
 
+            <!-- 載入動畫 -->
             <div id="loading" class="text-center py-12 text-stone-400">
                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
-                <p>正在連線測試...</p>
+                <p>正在從 JSONBin 載入記錄...</p>
             </div>
 
+            <!-- 列表容器 -->
             <div id="records-list" class="space-y-4"></div>
         </section>
     </main>
 
+    <!-- JavaScript 邏輯 -->
     <script>
         const BIN_ID = '6aae78bfffd5d160531932c5';
         const API_KEY = '$2a$10$Q3e6T7l53HKgJr3pc5tuW.5dTGTAyi6948TrSpoe7mNIZm6kaRMbm';
@@ -84,6 +88,7 @@
         document.getElementById('record-date').valueAsDate = new Date();
         window.addEventListener('DOMContentLoaded', fetchRecords);
 
+        // 表單送出事件（新增）
         document.getElementById('bible-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -102,6 +107,7 @@
             renderRecords();
 
             const success = await saveToJSONBin();
+            
             if (success) {
                 document.getElementById('record-notes').value = '';
                 document.getElementById('record-scripture').value = '';
@@ -112,6 +118,21 @@
             submitBtn.innerHTML = `<i class="fa-solid fa-plus"></i> 寫入記錄`;
         });
 
+        // 刪除記錄功能
+        async function deleteRecord(id) {
+            if (!confirm('確定要刪除這筆讀經記錄嗎？')) return;
+
+            // 從陣列中過濾掉該筆記錄
+            records = records.filter(item => item.id !== id);
+            
+            // 立即重新渲染畫面
+            renderRecords();
+
+            // 同步至 JSONBin 雲端
+            await saveToJSONBin();
+        }
+
+        // 從 JSONBin 讀取資料
         async function fetchRecords() {
             const statusEl = document.getElementById('sync-status');
             const loadingEl = document.getElementById('loading');
@@ -124,7 +145,11 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+                    if (response.status === 404 || response.status === 400) {
+                        await saveToJSONBin();
+                        return;
+                    }
+                    throw new Error('讀取失敗');
                 }
 
                 const data = await response.json();
@@ -134,11 +159,9 @@
                 statusEl.className = "text-xs bg-emerald-900/60 px-3 py-1 rounded-full text-emerald-200";
             } catch (error) {
                 console.error(error);
-                // 顯示詳細錯誤在畫面上
-                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 錯誤: ${error.message}`;
+                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 雲端連線異常`;
                 statusEl.className = "text-xs bg-rose-900/60 px-3 py-1 rounded-full text-rose-200";
                 
-                // 從本機讀取備份
                 const local = localStorage.getItem('bible_records');
                 if (local) {
                     records = JSON.parse(local);
@@ -149,8 +172,7 @@
             }
         }
 
-        async function saveToJSONBin.toString() { /* placeholder */ }
-
+        // 儲存資料至 JSONBin
         async function saveToJSONBin() {
             const statusEl = document.getElementById('sync-status');
             try {
@@ -163,9 +185,7 @@
                     body: JSON.stringify(records)
                 });
 
-                if (!response.ok) {
-                    throw new Error(`儲存錯誤! 狀態碼: ${response.status}`);
-                }
+                if (!response.ok) throw new Error('儲存失敗');
 
                 statusEl.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-300"></i> 已同步`;
                 statusEl.className = "text-xs bg-emerald-900/60 px-3 py-1 rounded-full text-emerald-200";
@@ -174,7 +194,7 @@
                 return true;
             } catch (error) {
                 console.error(error);
-                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 錯誤: ${error.message}`;
+                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 雲端同步失敗`;
                 statusEl.className = "text-xs bg-rose-900/60 px-3 py-1 rounded-full text-rose-200";
                 
                 localStorage.setItem('bible_records', JSON.stringify(records));
@@ -182,6 +202,7 @@
             }
         }
 
+        // 渲染記錄列表
         function renderRecords() {
             const listEl = document.getElementById('records-list');
             const countEl = document.getElementById('record-count');
@@ -204,15 +225,21 @@
                         <span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 px-3 py-1 rounded-full text-sm font-semibold">
                             <i class="fa-solid fa-bookmark"></i> ${escapeHtml(item.scripture)}
                         </span>
-                        <span class="text-xs text-stone-400 flex items-center gap-1">
-                            <i class="fa-regular fa-calendar"></i> ${escapeHtml(item.date)}
-                        </span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-stone-400 flex items-center gap-1">
+                                <i class="fa-regular fa-calendar"></i> ${escapeHtml(item.date)}
+                            </span>
+                            <button onclick="deleteRecord('${item.id}')" class="text-stone-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50" title="刪除記錄">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
                     <p class="text-stone-700 whitespace-pre-wrap leading-relaxed mt-3">${escapeHtml(item.notes)}</p>
                 </div>
             `).join('');
         }
 
+        // HTML 跳脫字元防護
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/&/g, '&amp;')
