@@ -1,0 +1,323 @@
+網頁支援：原始碼：
+
+
+文字邊框：<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字展示</title>
+    <style>
+        /* 全局重置與背景漸層 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            /* 藍色漸層背景 */
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #6dd5ed 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 中央卡片容器 */
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+        }
+
+        /* 內容顯示區域 */
+        .content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #2c3e50;
+            /* 保留文字的換行與空白格式 */
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="content">
+<!-- 請在下方貼上你要顯示的文字 -->
+
+文字內容...
+
+
+<!-- 請在上方貼上你要顯示的文字 -->
+        </div>
+    </div>
+
+</body>
+</html>
+
+
+
+/webapp 程式碼
+
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>讀經網站</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-amber-50/50 text-stone-800 min-h-screen font-sans">
+
+    <!-- 導覽列 -->
+    <header class="bg-amber-800 text-white shadow-md">
+        <div class="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold tracking-wide flex items-center gap-2">
+                <i class="fa-solid fa-book-bible"></i> 讀經記錄網站
+            </h1>
+            <span id="sync-status" class="text-xs bg-amber-900/60 px-3 py-1 rounded-full text-amber-200">
+                <i class="fa-solid fa-cloud"></i> 連線中...
+            </span>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- 新增記錄表單 -->
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-amber-100">
+            <h2 class="text-lg font-semibold text-amber-900 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-pen-nib"></i> 新增今日讀經心得
+            </h2>
+            <form id="bible-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-stone-600 mb-1">日期</label>
+                        <input type="date" id="record-date" required
+                            class="w-full px-4 py-2 rounded-lg border border-stone-300 focus:ring-2 focus:ring-amber-600 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-stone-600 mb-1">經文出處</label>
+                        <input type="text" id="record-scripture" placeholder="例如：約翰福音 3:16" required
+                            class="w-full px-4 py-2 rounded-lg border border-stone-300 focus:ring-2 focus:ring-amber-600 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600 mb-1">心得與默想</label>
+                    <textarea id="record-notes" rows="3" placeholder="寫下您的領受與感動..." required
+                        class="w-full px-4 py-2 rounded-lg border border-stone-300 focus:ring-2 focus:ring-amber-600 focus:outline-none"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" id="submit-btn"
+                        class="bg-amber-700 hover:bg-amber-800 text-white px-6 py-2.5 rounded-xl font-medium transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-plus"></i> 寫入記錄
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 記錄列表 -->
+        <section class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-amber-900 flex items-center gap-2">
+                    <i class="fa-solid fa-list-ul"></i> 歷史讀經記錄
+                </h2>
+                <span id="record-count" class="text-sm text-stone-500">共 0 筆記錄</span>
+            </div>
+
+            <!-- 載入動畫 -->
+            <div id="loading" class="text-center py-12 text-stone-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>正在從 JSONBin 載入記錄...</p>
+            </div>
+
+            <!-- 列表容器 -->
+            <div id="records-list" class="space-y-4"></div>
+        </section>
+    </main>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        const BIN_ID = '6aae78bfffd5d160531932c5';
+        const API_KEY = '$2a$10$Q3e6T7l53HKgJr3pc5tuW.5dTGTAyi6948TrSpoe7mNIZm6kaRMbm';
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+        let records = [];
+
+        document.getElementById('record-date').valueAsDate = new Date();
+        window.addEventListener('DOMContentLoaded', fetchRecords);
+
+        // 表單送出事件（新增）
+        document.getElementById('bible-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...`;
+
+            const newRecord = {
+                id: Date.now().toString(),
+                date: document.getElementById('record-date').value,
+                scripture: document.getElementById('record-scripture').value.trim(),
+                notes: document.getElementById('record-notes').value.trim()
+            };
+
+            records.unshift(newRecord);
+            renderRecords();
+
+            const success = await saveToJSONBin();
+            
+            if (success) {
+                document.getElementById('record-notes').value = '';
+                document.getElementById('record-scripture').value = '';
+                document.getElementById('record-date').valueAsDate = new Date();
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-plus"></i> 寫入記錄`;
+        });
+
+        // 刪除記錄功能
+        async function deleteRecord(id) {
+            if (!confirm('確定要刪除這筆讀經記錄嗎？')) return;
+
+            // 從陣列中過濾掉該筆記錄
+            records = records.filter(item => item.id !== id);
+            
+            // 立即重新渲染畫面
+            renderRecords();
+
+            // 同步至 JSONBin 雲端
+            await saveToJSONBin();
+        }
+
+        // 從 JSONBin 讀取資料
+        async function fetchRecords() {
+            const statusEl = document.getElementById('sync-status');
+            const loadingEl = document.getElementById('loading');
+            
+            try {
+                const response = await fetch(`${API_URL}/latest`, {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404 || response.status === 400) {
+                        await saveToJSONBin();
+                        return;
+                    }
+                    throw new Error('讀取失敗');
+                }
+
+                const data = await response.json();
+                records = Array.isArray(data.record) ? data.record : [];
+                
+                statusEl.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-300"></i> 已同步`;
+                statusEl.className = "text-xs bg-emerald-900/60 px-3 py-1 rounded-full text-emerald-200";
+            } catch (error) {
+                console.error(error);
+                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 雲端連線異常`;
+                statusEl.className = "text-xs bg-rose-900/60 px-3 py-1 rounded-full text-rose-200";
+                
+                const local = localStorage.getItem('bible_records');
+                if (local) {
+                    records = JSON.parse(local);
+                }
+            } finally {
+                loadingEl.style.display = 'none';
+                renderRecords();
+            }
+        }
+
+        // 儲存資料至 JSONBin
+        async function saveToJSONBin() {
+            const statusEl = document.getElementById('sync-status');
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(records)
+                });
+
+                if (!response.ok) throw new Error('儲存失敗');
+
+                statusEl.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-300"></i> 已同步`;
+                statusEl.className = "text-xs bg-emerald-900/60 px-3 py-1 rounded-full text-emerald-200";
+                
+                localStorage.setItem('bible_records', JSON.stringify(records));
+                return true;
+            } catch (error) {
+                console.error(error);
+                statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-300"></i> 雲端同步失敗`;
+                statusEl.className = "text-xs bg-rose-900/60 px-3 py-1 rounded-full text-rose-200";
+                
+                localStorage.setItem('bible_records', JSON.stringify(records));
+                return false;
+            }
+        }
+
+        // 渲染記錄列表
+        function renderRecords() {
+            const listEl = document.getElementById('records-list');
+            const countEl = document.getElementById('record-count');
+            
+            countEl.textContent = `共 ${records.length} 筆記錄`;
+
+            if (records.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-2xl border border-amber-100 text-stone-400">
+                        <i class="fa-regular fa-folder-open text-3xl mb-2"></i>
+                        <p>目前沒有讀經記錄，請在上方新增第一筆吧！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = records.map(item => `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-amber-100 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 px-3 py-1 rounded-full text-sm font-semibold">
+                            <i class="fa-solid fa-bookmark"></i> ${escapeHtml(item.scripture)}
+                        </span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-stone-400 flex items-center gap-1">
+                                <i class="fa-regular fa-calendar"></i> ${escapeHtml(item.date)}
+                            </span>
+                            <button onclick="deleteRecord('${item.id}')" class="text-stone-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50" title="刪除記錄">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-stone-700 whitespace-pre-wrap leading-relaxed mt-3">${escapeHtml(item.notes)}</p>
+                </div>
+            `).join('');
+        }
+
+        // HTML 跳脫字元防護
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
