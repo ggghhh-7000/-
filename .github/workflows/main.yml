@@ -106,9 +106,10 @@ jobs:
         """
         msg.attach(MIMEText(html_content, "html"))
 
-        # 透過 Outlook SMTP 發送
+        # 透過 Outlook SMTP (Port 587 + STARTTLS) 發送，設定 15 秒逾時
         try:
-            with smtplib.SMTP_SSL("smtp-mail.outlook.com", 465) as server:
+            with smtplib.SMTP("smtp-mail.outlook.com", 587, timeout=15) as server:
+                server.starttls()
                 server.login(sender, os.environ["OUTLOOK_PASS"])
                 server.sendmail(sender, receiver, msg.as_string())
             print("Email sent successfully via Outlook!")
