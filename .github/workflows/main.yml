@@ -42,23 +42,46 @@ jobs:
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
 
-        github_data = json.loads(os.environ["GITHUB_CONTEXT"])
-        event_name = os.environ.get("GITHUB_EVENT_NAME")
-        repo = github_data.get("repository", {}).get("full_name", "Unknown Repo")
+        raw_context = os.environ.get("GITHUB_CONTEXT", "{}")
+        if isinstance(raw_context, str):
+            try:
+                github_data = json.loads(raw_context)
+            except:
+                github_data = {}
+        else:
+            github_data = raw_context
+
+        if not isinstance(github_data, dict):
+            github_data = {}
+
+        event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+        repo = github_data.get("repository", {})
+        if isinstance(repo, dict):
+            repo_name = repo.get("full_name", "Unknown Repo")
+        else:
+            repo_name = "Unknown Repo"
         
         # 判斷觸發事件並抓取對應網址
-        url = "https://github.com/" + repo
+        url = "https://github.com/" + repo_name
         action_desc = "有新的動作"
+
+        event_data = github_data.get("event", {})
+        if not isinstance(event_data, dict):
+            event_data = {}
 
         if event_name == "push":
             action_desc = "新增了 Commit / 程式碼 / 檔案"
-            url = github_data.get("event", {}).get("compare", url)
+            url = event_data.get("compare", url)
         elif event_name == "issues":
             action_desc = "建立了新的問題 (Issue)"
-            url = github_data.get("event", {}).get("issue", {}).get("html_url", url)
+            issue_info = event_data.get("issue", {})
+            if isinstance(issue_info, dict):
+                url = issue_info.get("html_url", url)
         elif event_name == "pull_request":
             action_desc = "申請了新的 Pull Request (PR)"
-            url = github_data.get("event", {}).get("pull_request", {}).get("html_url", url)
+            pr_info = event_data.get("pull_request", {})
+            if isinstance(pr_info, dict):
+                url = pr_info.get("html_url", url)
         elif event_name == "deployment":
             action_desc = "有新的部署頁面事件"
 
@@ -67,13 +90,13 @@ jobs:
         receiver = os.environ["TARGET_EMAIL"]
         
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[GitHub 通知] {repo} 有新的活動"
+        msg["Subject"] = f"[GitHub 通知] {repo_name} 有新的活動"
         msg["From"] = sender
         msg["To"] = receiver
 
         html_content = f"""
         <h3>GitHub 儲存庫通知</h3>
-        <p><b>儲存庫：</b> {repo}</p>
+        <p><b>儲存庫：</b> {repo_name}</p>
         <p><b>事件類型：</b> {action_desc}</p>
         <p><b>相關網址：</b> <a href="{url}">{url}</a></p>
         """
