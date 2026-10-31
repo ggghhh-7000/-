@@ -91,7 +91,7 @@ jobs:
         elif event_name == "deployment":
             action_desc = f"在 {repo_name} 有新的部署頁面事件"
 
-        # 郵件內容
+        # 郵件標頭與內容建立
         sender = os.environ["OUTLOOK_USER"]
         receiver = os.environ["TARGET_EMAIL"]
         
@@ -99,6 +99,7 @@ jobs:
         msg["Subject"] = f"[GitHub 通知] {repo_name} 有新的活動"
         msg["From"] = sender
         msg["To"] = receiver
+        msg["Reply-To"] = sender
 
         html_content = f"""
         <p>您好Ouma，{action_desc}</p>
@@ -106,12 +107,19 @@ jobs:
         """
         msg.attach(MIMEText(html_content, "html"))
 
-        # 透過 Outlook SMTP (Port 587 + STARTTLS) 發送，設定 15 秒逾時
+        # 同時包含目標收件人與發件人自己（BCC效果，建立發信紀錄備份）
+        recipients = [receiver]
+        if sender not in recipients:
+            recipients.append(sender)
+
+        # 透過 Outlook SMTP (Port 587 + STARTTLS) 發送
         try:
             with smtplib.SMTP("smtp-mail.outlook.com", 587, timeout=15) as server:
+                server.ehlo()
                 server.starttls()
+                server.ehlo()
                 server.login(sender, os.environ["OUTLOOK_PASS"])
-                server.sendmail(sender, receiver, msg.as_string())
+                server.sendmail(sender, recipients, msg.as_string())
             print("Email sent successfully via Outlook!")
         except Exception as e:
             print("Failed to send email:", e)
