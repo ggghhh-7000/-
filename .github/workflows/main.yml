@@ -30,10 +30,9 @@ jobs:
     - name: Send Email via Outlook
       if: steps.check-day.outputs.is_weekend_target == 'true'
       env:
-                OUTLOOK_USER: ${{ secrets.OUTLOOK_USER }}
+        OUTLOOK_USER: ${{ secrets.OUTLOOK_USER }}
         OUTLOOK_PASS: ${{ secrets.OUTLOOK_PASS }}
         TARGET_EMAIL: ${{ secrets.TARGET_EMAIL }}
-
         GITHUB_CONTEXT: ${{ toJson(github) }}
       run: |
         python3 -c '
