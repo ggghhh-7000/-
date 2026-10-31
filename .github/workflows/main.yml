@@ -63,27 +63,33 @@ jobs:
         
         # 判斷觸發事件並抓取對應網址
         url = "https://github.com/" + repo_name
-        action_desc = "有新的動作"
+        action_desc = f"在 {repo_name} 有新的活動"
 
         event_data = github_data.get("event", {})
         if not isinstance(event_data, dict):
             event_data = {}
 
         if event_name == "push":
-            action_desc = "新增了 Commit / 程式碼 / 檔案"
+            action_desc = f"在 {repo_name} 新增了 Commit / 程式碼"
             url = event_data.get("compare", url)
         elif event_name == "issues":
-            action_desc = "建立了新的問題 (Issue)"
             issue_info = event_data.get("issue", {})
             if isinstance(issue_info, dict):
+                issue_title = issue_info.get("title", "Issue")
                 url = issue_info.get("html_url", url)
+                action_desc = f"建立了新的 Issue: {issue_title}"
+            else:
+                action_desc = f"在 {repo_name} 建立了新的 Issue"
         elif event_name == "pull_request":
-            action_desc = "申請了新的 Pull Request (PR)"
             pr_info = event_data.get("pull_request", {})
             if isinstance(pr_info, dict):
+                pr_title = pr_info.get("title", "PR")
                 url = pr_info.get("html_url", url)
+                action_desc = f"申請了新的 Pull Request: {pr_title}"
+            else:
+                action_desc = f"在 {repo_name} 申請了新的 Pull Request"
         elif event_name == "deployment":
-            action_desc = "有新的部署頁面事件"
+            action_desc = f"在 {repo_name} 有新的部署頁面事件"
 
         # 郵件內容
         sender = os.environ["OUTLOOK_USER"]
@@ -95,10 +101,8 @@ jobs:
         msg["To"] = receiver
 
         html_content = f"""
-        <h3>GitHub 儲存庫通知</h3>
-        <p><b>儲存庫：</b> {repo_name}</p>
-        <p><b>事件類型：</b> {action_desc}</p>
-        <p><b>相關網址：</b> <a href="{url}">{url}</a></p>
+        <p>您好Ouma，{action_desc}</p>
+        <p><a href="{url}">{url}</a></p>
         """
         msg.attach(MIMEText(html_content, "html"))
 
