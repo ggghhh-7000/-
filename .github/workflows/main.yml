@@ -1,4 +1,4 @@
-name: Weekend Email Notifier (Outlook)
+name: Email Notifier (Outlook)
 
 on:
   push:
@@ -14,21 +14,7 @@ jobs:
   send-email:
     runs-on: ubuntu-latest
     steps:
-    - name: Check Day of Week (Friday or Saturday)
-      id: check-day
-      run: |
-        DAY_OF_WEEK=$(TZ='Asia/Taipei' date +%u)
-        echo "Current day (1-7): $DAY_OF_WEEK"
-        
-        # 5 是星期五，6 是星期六
-        if [ "$DAY_OF_WEEK" -eq 5 ] || [ "$DAY_OF_WEEK" -eq 6 ]; then
-          echo "is_weekend_target=true" >> $GITHUB_OUTPUT
-        else
-          echo "is_weekend_target=false" >> $GITHUB_OUTPUT
-        fi
-
     - name: Send Email via Outlook
-      if: steps.check-day.outputs.is_weekend_target == 'true'
       env:
         OUTLOOK_USER: ${{ secrets.OUTLOOK_USER }}
         OUTLOOK_PASS: ${{ secrets.OUTLOOK_PASS }}
@@ -107,7 +93,7 @@ jobs:
         """
         msg.attach(MIMEText(html_content, "html"))
 
-        # 同時包含目標收件人與發件人自己（BCC效果，建立發信紀錄備份）
+        # 同時包含目標收件人與發件人自己（建立發信紀錄備份）
         recipients = [receiver]
         if sender not in recipients:
             recipients.append(sender)
